@@ -77,3 +77,37 @@ export const logout = (req, res) => {
         return res.status(500).json({ message: "Server error" });
     }
 };
+
+export const updateProfile = async (req, res) => {
+    try {
+        const { profilePicture } = req.body;
+        const userId = req.user._id;
+        if (!profilePicture) {
+            return res.status(400).json({ message: "Profile picture is required" });
+        }
+        const uploadResponse = await cloudinary.uploader.upload(profilePicture);
+        const updatedUser = await User.findByIdAndUpdate(
+            userId,
+            { profilePicture: uploadResponse.secure_url },
+            { new: true }
+        );
+        return res.status(200).json({
+            id: updatedUser._id,
+            fullName: updatedUser.fullName,
+            email: updatedUser.email,
+            profilePicture: updatedUser.profilePicture
+        });
+    } catch (error) {
+        console.error("Error updating profile controller:", error.message);
+        return res.status(500).json({ message: "Server error" });
+    }
+}
+
+export const checkAuth = async (req, res) => {
+    try {
+        res.status(200).json(req.user);
+    } catch (error) {
+        console.error("Error checking authentication controller:", error.message);
+        return res.status(500).json({ message: "Server error" });
+    }
+}
