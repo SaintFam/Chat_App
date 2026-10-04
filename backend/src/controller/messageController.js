@@ -1,4 +1,5 @@
 
+import cloudinary from "../lib/cloudinary";
 import Message from "../models/messageModel";
 import User from "../models/userModel";
 
@@ -19,8 +20,8 @@ export const getMesssagesByUserId = async (req, res) => {
         const myId = req.user._id;
         const messages = await Message.find({
             $or: [
-                { senderId: myId, receiverId: userToChatId },
-                { senderId: userToChatId, receiverId: myId }
+                { sender: myId, receiverId: userToChatId },
+                { sender: userToChatId, receiverId: myId }
             ]
         })
         res.status(200).json(messages);
@@ -30,4 +31,29 @@ export const getMesssagesByUserId = async (req, res) => {
     }
 }
 
-export const sendMessage = async (req, res) => { }
+export const sendMessage = async (req, res) => {
+    try {
+        const { text, image } = req.body;
+        const { id: receiverId } = req.params;
+        const senderId = req.user._id;
+
+        let imageUrl;
+        if (image) {
+            const uploadedresponse = await cloudinary.uploader.upload(image);
+            imageUrl = uploadedresponse.secure_url;
+        }
+
+        const newMessage = new Message({
+            sender: senderId,
+            receiverId: receiverId,
+            text: text,
+            image: imageUrl
+        });
+
+        await newMessage.save();
+        res.status(201).json(newMessage);
+    } catch (error) {
+        console.error('Error sending message:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+}
